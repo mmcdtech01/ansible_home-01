@@ -4,36 +4,20 @@
   become: true
   tasks:
 
-  - name: update repository index
-    apt:
+  - name: Install apache and php packages
+    package:
+      name: 
+        - apache2
+        - libapache2-mod-php
+      state: latest
       update_cache: yes
     when: ansible_distribution == "Debian"
 
   - name: Install apache httpd  (state=present is optional)
-    apt:
-      name: apache2
-      state: latest
-    when: ansible_distribution == "Debian"
-
-  - name: php support for apache
-    apt:
-      name: libapache2-mod-php
-      state: latest
-    when: ansible_distribution == "Debian"
-
-  - name: update repository index
     ansible.builtin.yum:
+      name:
+        - httpd
+        - php
+      state: latest
       update_cache: yes
-    when: (ansible_pkg_mgr == 'yum') and (ansible_distribution == "CentOS")
-
-  - name: Install apache httpd  (state=present is optional)
-    ansible.builtin.yum:
-      name: httpd
-      state: latest
-    when: (ansible_pkg_mgr == 'yum') and (ansible_distribution == "CentOS")
-
-  - name: php support for apache
-    ansible.builtin.yum:
-      name: php
-      state: latest
     when: (ansible_pkg_mgr == 'yum') and (ansible_distribution == "CentOS")

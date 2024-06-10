@@ -1,0 +1,57 @@
+---
+
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: install updates (CentOS)
+    tags: always
+    ansible.builtin.yum:
+      update_only: yes
+      update_cache: yes
+    when: (ansible_pkg_mgr == 'yum') and (ansible_distribution == "CentOS")
+
+  - name: install updates (Debian)
+    tags: always
+    apt:
+      upgrade: dist
+      update_cache: yes
+    when: ansible_distribution == "Debian"
+
+
+- hosts: web_servers
+  become: true
+  tasks:
+
+  - name: Install apache and php packages
+    tags: apache,apache2,Debian
+    package:
+      name: 
+        - apache2
+        - libapache2-mod-php
+      state: latest
+    when: ansible_distribution == "Debian"
+
+  - name: Install apache httpd
+    tags: apache,centos.httpd
+    ansible.builtin.yum:
+      name:
+        - httpd
+        - php
+      state: latest
+    when: (ansible_pkg_mgr == 'yum') and (ansible_distribution == "CentOS")
+
+
+
+- hosts: file_servers
+  become: true
+  tasks:
+
+  - name: install tmux package
+    tags: Debian,samba,tmux
+    package:
+      name:
+      - tmux
+      - samba
+      state: latest
+    when: ansible_distribution == "Debian"
