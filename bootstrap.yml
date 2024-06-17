@@ -1,0 +1,44 @@
+---
+
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: install updates (CentOS)
+    tags: always
+    ansible.builtin.yum:
+      update_only: yes
+      update_cache: yes
+    when: (ansible_pkg_mgr == 'yum') and (ansible_distribution == "CentOS")
+
+  - name: install updates (Debian)
+    tags: always
+    apt:
+      upgrade: dist
+      update_cache: yes
+    when: ansible_distribution == "Debian"
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: create mike user
+    tags: always
+    user:
+      name: mike
+      groups: root
+
+  - name: add ssh key for mike
+    tags: always
+    authorized_key:
+      user: mike
+      key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBmTtGHkxMrsbSc6tx6dnuTkTGYQrxw+elJq4Fm4w48h ansible_mike"
+
+  - name: add sudoers file for mike
+    tags: always
+    copy:
+      src: sudoer_mike
+      dest: /etc/sudoers.d/mike
+      owner: root
+      group: root
+      mode: 0440
