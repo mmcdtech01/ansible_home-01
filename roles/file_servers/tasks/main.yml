@@ -1,0 +1,8 @@
+- name: install tmux package
+  tags: Debian,samba,tmux
+  package:
+    name:
+    - tmux
+    - samba
+    state: latest
+  when: ansible_distribution == "Debian"
