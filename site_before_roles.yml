@@ -1,0 +1,117 @@
+---
+
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: update repo cache (CentOS)
+    tags: always
+    ansible.builtin.yum:
+      update_cache: yes
+    changed_when: false
+    when: (ansible_pkg_mgr == 'yum') and (ansible_distribution == "CentOS")
+
+  - name: update repo cache (Debian)
+    tags: always
+    apt:
+      update_cache: yes
+    changed_when: false
+    when: ansible_distribution == "Debian"
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: add ssh key for mike
+    tags: always
+    authorized_key:
+      user: mike
+      key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBmTtGHkxMrsbSc6tx6dnuTkTGYQrxw+elJq4Fm4w48h ansible_mike"
+
+- hosts: work_stations
+  become: true
+  tasks:
+
+  - name: install unzip
+    package:
+      name: 
+        - unzip
+        - tmux
+
+  - name: install terraform
+    unarchive:
+      src: https://releases.hashicorp.com/terraform/1.8.5/terraform_1.8.5_linux_amd64.zip
+      dest: /usr/local/bin
+      remote_src: yes
+      mode: 0755
+      owner: root
+      group: root
+
+- hosts: web_servers
+  become: true
+  tasks:
+
+  - name: Install apache and php packages
+    tags: apache,apache2,Debian
+    package:
+      name: 
+        - apache2
+        - libapache2-mod-php
+      state: latest
+    when: ansible_distribution == "Debian"
+
+  - name: Install apache httpd
+    tags: apache,centos.httpd
+    ansible.builtin.yum:
+      name:
+        - httpd
+        - php
+      state: latest
+    when: (ansible_pkg_mgr == 'yum') and (ansible_distribution == "CentOS")
+
+  - name: start httpd (CentOS)
+    tags: apche,centos,httpd
+    service:
+      name: httpd
+      state: started
+      enabled: yes
+    when: (ansible_pkg_mgr == 'yum') and (ansible_distribution == "CentOS")
+
+  - name: change email address for admin
+    tags: apache,centos,httpd
+    lineinfile:
+      path: /etc/httpd/conf/httpd.conf
+      regexp: '^ServerAdmin'
+      line: ServerAdmin somebody@somewhere.net
+    when: (ansible_pkg_mgr == 'yum') and (ansible_distribution == "CentOS")
+    register: httpd
+
+  - name: restart httpd (CentOS)
+    tags: apache,centos,httpd
+    service:
+      name: httpd
+      state: restarted
+    when: httpd.changed
+
+  - name: copy default html file for site
+    tags: apache,apache2,httpd
+    copy:
+      src: default_site.html
+      dest: /var/www/html/index.html
+      owner: root
+      group: root
+      mode: 0644
+
+
+- hosts: file_servers
+  become: true
+  tasks:
+
+  - name: install tmux package
+    tags: Debian,samba,tmux
+    package:
+      name:
+      - tmux
+      - samba
+      state: latest
+    when: ansible_distribution == "Debian"
